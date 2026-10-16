@@ -5,8 +5,7 @@ playbook takes clean Ubuntu 24.04 machines to a working system with metrics,
 dashboards, alerting, centralized logs and a reverse proxy, and a small web
 application that the platform monitors.
 
-Project 5 (*DevOps monitoring platform*) of the course *Администрација на ИТ
-системи*, FINKI.
+Project 5 (*DevOps monitoring platform*)
 
 | Area | Components |
 |------|------------|
