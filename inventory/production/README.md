@@ -39,7 +39,8 @@ The IP addresses must match the `production` section of the `Vagrantfile`.
 
 ### hosts.ini
 
-The 13 hosts with `ansible_host`, one section per group, and
+The 13 hosts with `ansible_host` and `ansible_ssh_private_key_file` (the SSH
+key Vagrant created for that machine), one section per group, and
 `[monitoring:children]`.
 
 ### group_vars/all/vars.yml
@@ -50,7 +51,7 @@ Same variables as staging, with production values:
 |----------|-------|
 | `env_name` | `production` |
 | `monitoring_host` | `192.168.56.21` |
-| `ansible_user`, `ansible_ssh_private_key_file` | Vagrant user and key, as in staging |
+| `ansible_user` | `vagrant`, as in staging |
 | `proxy_basic_auth_user` | `admin` |
 | secret mappings | `{{ vault_... }}` |
 

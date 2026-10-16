@@ -27,8 +27,9 @@ The IP addresses must match the `staging` section of the `Vagrantfile`.
 
 ### hosts.ini
 
-The six hosts with `ansible_host` (the IP address Ansible connects to), one
-section per group, and `[monitoring:children]`, which makes all six groups
+The six hosts with `ansible_host` (the IP address Ansible connects to) and
+`ansible_ssh_private_key_file` (the SSH key Vagrant created for that machine),
+one section per group, and `[monitoring:children]`, which makes all six groups
 members of `monitoring`.
 
 ### group_vars/all/vars.yml
@@ -40,7 +41,6 @@ Applies to every host.
 | `env_name` | `staging` | written into Prometheus labels and Filebeat fields |
 | `monitoring_host` | `192.168.56.10` | the address users open; used for the URLs of Grafana, Prometheus, Alertmanager and Kibana behind the proxy |
 | `ansible_user` | `vagrant` | SSH user created by Vagrant |
-| `ansible_ssh_private_key_file` | `.vagrant/machines/<host>/virtualbox/private_key` | SSH key Vagrant creates for each machine |
 | `proxy_basic_auth_user` | `admin` | user name of the proxy login |
 | `grafana_admin_password` and the other secrets | `{{ vault_... }}` | mapping of the vault values to the names the roles use |
 

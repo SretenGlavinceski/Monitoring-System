@@ -4,8 +4,8 @@ env_name: production
 # address users open in the browser (the first proxy)
 monitoring_host: 192.168.56.21
 
+# the SSH key of each VM is set per host in hosts.ini
 ansible_user: vagrant
-ansible_ssh_private_key_file: "{{ inventory_dir }}/../../.vagrant/machines/{{ inventory_hostname }}/virtualbox/private_key"
 
 proxy_basic_auth_user: admin
 
