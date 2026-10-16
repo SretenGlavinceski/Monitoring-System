@@ -799,22 +799,6 @@ ansible-playbook -i $INV rolling_update.yml -e app_version=1.1.0
 In production, the output switches host by host from 1.0.0 to 1.1.0 and the
 page never fails, because one app host keeps serving. In staging there is
 only one app host, so requests fail briefly while it is updated.
-
-### 6.10 Suggested order for the presentation
-
-| Part of the demonstration | Time | Content |
-|---------------------------|------|---------|
-| Architecture | 5 min | section 1 and the diagram |
-| `site.yml` from a clean system | 10 min | `vagrant destroy -f && vagrant up`, then `ansible-playbook site.yml`; while it runs, explain the plays (docs/site.md) |
-| Services | | 6.1 → 6.8, following one request: proxy, app, metrics, alerts, logs |
-| Rolling update | 2 min | 6.9 |
-| Roles and templates | 2 min | role READMEs, e.g. `prometheus.yml.j2` and the upstreams template |
-| Questions | 5 min | |
-
-The first run of `site.yml` takes longer than 10 minutes. For the
-presentation, start it in advance on clean machines or show a second,
-idempotent run (`changed=0`) live.
-
 ---
 
 ## 7. Requirement coverage
