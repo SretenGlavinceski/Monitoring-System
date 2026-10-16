@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: elk_pipeline
+  author: Sreten Glavincheski
+  description: Log pipeline with Filebeat, Logstash, Elasticsearch and Kibana
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+dependencies: []

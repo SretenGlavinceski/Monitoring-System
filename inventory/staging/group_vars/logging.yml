@@ -1,0 +1,6 @@
+---
+es_cluster_name: monitoring-staging
+es_heap_size: 1g
+es_single_node: true
+es_replicas: 0
+kibana_max_old_space_mb: 512

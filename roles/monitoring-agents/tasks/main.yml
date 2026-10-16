@@ -1,0 +1,19 @@
+---
+- name: Install node_exporter
+  ansible.builtin.include_role:
+    name: prometheus.prometheus.node_exporter
+  vars:
+    node_exporter_web_listen_address: "0.0.0.0:{{ node_exporter_port }}"
+
+- name: Install the exporters for the groups this host belongs to
+  ansible.builtin.include_tasks: exporter.yml
+  loop: "{{ agent_exporters | selectattr('group', 'in', group_names) | list }}"
+  loop_control:
+    loop_var: exporter
+    label: "{{ exporter.name }}"
+
+# the Filebeat configuration belongs to the log pipeline, see roles/elk-pipeline
+- name: Install Filebeat
+  ansible.builtin.include_role:
+    name: elk-pipeline
+    tasks_from: filebeat.yml

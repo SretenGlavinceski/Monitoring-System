@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+server.host: "0.0.0.0"
+server.port: {{ kibana_port }}
+server.basePath: "{{ kibana_base_path }}"
+server.rewriteBasePath: true
+server.publicBaseUrl: "https://{{ monitoring_host }}{{ kibana_base_path }}"
+elasticsearch.hosts: ["http://127.0.0.1:{{ es_port }}"]

@@ -1,0 +1,30 @@
+---
+# Elastic apt repository branch, also used by geerlingguy.elasticsearch
+es_version: "7.x"
+
+es_cluster_name: monitoring
+es_heap_size: 1g
+es_single_node: true
+es_replicas: 0
+es_port: 9200
+
+# all log indices are named <es_index_prefix>-<log_type>-<date>
+es_index_prefix: monitoring
+
+kibana_enabled: false
+kibana_port: 5601
+kibana_base_path: /kibana
+kibana_max_old_space_mb: 512
+kibana_data_views:
+  - id: infra-logs
+    title: "{{ es_index_prefix }}-syslog-*,{{ es_index_prefix }}-nginx_*,{{ es_index_prefix }}-elasticsearch-*"
+  - id: app-logs
+    title: "{{ es_index_prefix }}-app-*"
+
+logstash_heap_size: 512m
+logstash_beats_port: 5044
+
+# Filebeat runs on every host, the agents role includes tasks/filebeat.yml
+filebeat_app_log: /var/log/demo-app/app.log
+filebeat_infra_team: infra
+filebeat_app_team: app

@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: monitoring_agents
+  author: Sreten Glavincheski
+  description: node_exporter and Filebeat on every host, extra exporters per group
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+dependencies: []

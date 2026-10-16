@@ -1,0 +1,58 @@
+---
+- name: Set vm.max_map_count
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+  when: ansible_virtualization_type != 'lxc'
+
+- name: Render cluster settings
+  ansible.builtin.set_fact:
+    es_extra_options: "{{ lookup('template', 'elasticsearch-cluster.yml.j2') }}"
+
+- name: Install Elasticsearch
+  ansible.builtin.include_role:
+    name: geerlingguy.elasticsearch
+  vars:
+    elasticsearch_version: "{{ es_version }}"
+    elasticsearch_network_host: 0.0.0.0
+    elasticsearch_http_port: "{{ es_port }}"
+    elasticsearch_heap_size_min: "{{ es_heap_size }}"
+    elasticsearch_heap_size_max: "{{ es_heap_size }}"
+    elasticsearch_extra_options: "{{ es_extra_options }}"
+
+- name: Wait for the cluster to accept writes
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ es_port }}/_cluster/health?wait_for_status=yellow&timeout=60s"
+  register: es_health
+  until: es_health.status == 200
+  retries: 10
+  delay: 10
+
+# The template carries a checksum of its own content in _meta. It is written
+# when it does not exist or when the checksum differs, so a change in the
+# template file is applied and an unchanged one reports "ok".
+- name: Build the index template
+  ansible.builtin.set_fact:
+    es_index_template: "{{ lookup('template', 'index-template.json.j2') | from_json }}"
+  run_once: true
+
+- name: Read the current index template
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ es_port }}/_index_template/{{ es_index_prefix }}-logs"
+    status_code: [200, 404]
+  register: es_current_template
+  run_once: true
+
+- name: Create or update the index template
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ es_port }}/_index_template/{{ es_index_prefix }}-logs"
+    method: PUT
+    body_format: json
+    body: "{{ es_index_template | combine({'_meta': {'checksum': es_index_template | to_json | hash('sha1')}}) }}"
+  when: >-
+    es_current_template.status == 404 or
+    es_current_template.json.index_templates[0].index_template._meta.checksum | default('')
+    != es_index_template | to_json | hash('sha1')
+  changed_when: true
+  run_once: true

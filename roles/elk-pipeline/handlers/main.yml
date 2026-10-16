@@ -1,0 +1,15 @@
+---
+- name: Restart kibana
+  ansible.builtin.systemd:
+    name: kibana
+    state: restarted
+
+- name: Restart logstash
+  ansible.builtin.systemd:
+    name: logstash
+    state: restarted
+
+- name: Restart filebeat
+  ansible.builtin.systemd:
+    name: filebeat
+    state: restarted

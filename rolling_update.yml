@@ -1,0 +1,55 @@
+---
+# Deploys a new application version one host at a time. Each host is taken
+# out of the nginx upstream on every proxy, updated, checked and put back.
+#   ansible-playbook -i inventory/production rolling_update.yml -e app_version=1.1.0
+
+- name: Rolling update of the application tier
+  hosts: app
+  serial: 1
+  max_fail_percentage: 0
+
+  pre_tasks:
+    - name: Take this host out of the proxy upstreams
+      ansible.builtin.template:
+        src: upstreams.conf.j2
+        dest: /etc/nginx/conf.d/upstreams.conf
+        mode: "0644"
+      vars:
+        upstream_down: ["{{ inventory_hostname }}"]
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['proxy'] }}"
+
+    - name: Reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['proxy'] }}"
+
+  roles:
+    - demo-app
+
+  post_tasks:
+    - name: Wait until the new version answers
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ app_port }}/health"
+        return_content: true
+      register: app_health
+      until: app_health.status == 200 and app_health.json.version == app_version
+      retries: 12
+      delay: 5
+
+    - name: Put this host back into the proxy upstreams
+      ansible.builtin.template:
+        src: upstreams.conf.j2
+        dest: /etc/nginx/conf.d/upstreams.conf
+        mode: "0644"
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['proxy'] }}"
+
+    - name: Reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['proxy'] }}"

@@ -1,0 +1,27 @@
+# {{ ansible_managed }}
+input {
+  beats {
+    port => {{ logstash_beats_port }}
+  }
+}
+
+filter {
+  if [fields][log_type] == "nginx_access" {
+    grok {
+      match => { "message" => "%{COMBINEDAPACHELOG}" }
+    }
+    date {
+      match => [ "timestamp", "dd/MMM/yyyy:HH:mm:ss Z" ]
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => [{% for h in groups['logging'] %}"http://{{ hostvars[h].ansible_host }}:{{ es_port }}"{{ ", " if not loop.last else "" }}{% endfor %}]
+    index => "{{ es_index_prefix }}-%{[fields][log_type]}-%{+YYYY.MM.dd}"
+    manage_template => false
+    ilm_enabled => false
+    data_stream => "false"
+  }
+}

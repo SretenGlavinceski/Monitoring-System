@@ -1,0 +1,46 @@
+# {{ ansible_managed }}
+groups:
+  - name: infra_alerts
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{% raw %}{{ $labels.job }} on {{ $labels.host }} is down{% endraw %}'
+
+      - alert: HighCpuUsage
+        expr: instance:node_cpu_utilisation:rate5m > {{ alert_cpu_threshold }}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{% raw %}CPU usage on {{ $labels.host }} is {{ $value | printf "%.0f" }}%{% endraw %}'
+
+      - alert: HighMemoryUsage
+        expr: instance:node_memory_utilisation:ratio * 100 > {{ alert_memory_threshold }}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{% raw %}Memory usage on {{ $labels.host }} is {{ $value | printf "%.0f" }}%{% endraw %}'
+
+      - alert: LowDiskSpace
+        expr: instance:node_filesystem_utilisation:ratio * 100 > {{ alert_disk_threshold }}
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{% raw %}Disk {{ $labels.mountpoint }} on {{ $labels.host }} is {{ $value | printf "%.0f" }}% full{% endraw %}'
+
+  - name: app_alerts
+    rules:
+      - alert: AppHighErrorRate
+        expr: app:errors:rate1m / app:requests:rate1m * 100 > {{ alert_app_error_rate_threshold }}
+        for: 1m
+        labels:
+          severity: critical
+          team: {{ prometheus_app_team }}
+        annotations:
+          summary: '{% raw %}{{ $value | printf "%.0f" }}% of requests on {{ $labels.host }} fail{% endraw %}'

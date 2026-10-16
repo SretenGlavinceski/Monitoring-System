@@ -1,0 +1,66 @@
+---
+- name: Install Kibana
+  ansible.builtin.apt:
+    name: kibana
+    state: present
+
+- name: Limit Kibana memory
+  ansible.builtin.lineinfile:
+    path: /etc/kibana/node.options
+    regexp: "^--max-old-space-size="
+    create: true
+    owner: root
+    group: kibana
+    mode: "0660"
+    line: "--max-old-space-size={{ kibana_max_old_space_mb }}"
+  notify: Restart kibana
+
+- name: Configure Kibana
+  ansible.builtin.template:
+    src: kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
+    owner: root
+    group: kibana
+    mode: "0640"
+  notify: Restart kibana
+
+- name: Enable and start Kibana
+  ansible.builtin.systemd:
+    name: kibana
+    enabled: true
+    state: started
+
+- name: Apply configuration changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for the Kibana API
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ kibana_port }}{{ kibana_base_path }}/api/status"
+  register: kibana_status
+  until: kibana_status.status == 200
+  retries: 30
+  delay: 10
+
+- name: Read the current data views
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ kibana_port }}{{ kibana_base_path }}/api/saved_objects/index-pattern/{{ item.id }}"
+    status_code: [200, 404]
+  register: kibana_current_views
+  loop: "{{ kibana_data_views }}"
+
+- name: Create or update data views
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ kibana_port }}{{ kibana_base_path }}/api/saved_objects/index-pattern/{{ item.item.id }}?overwrite=true"
+    method: POST
+    headers:
+      kbn-xsrf: "true"
+    body_format: json
+    body:
+      attributes:
+        title: "{{ item.item.title }}"
+        timeFieldName: "@timestamp"
+  loop: "{{ kibana_current_views.results }}"
+  loop_control:
+    label: "{{ item.item.id }}"
+  when: item.status == 404 or item.json.attributes.title != item.item.title
+  changed_when: true

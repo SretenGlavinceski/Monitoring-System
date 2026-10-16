@@ -1,0 +1,113 @@
+---
+# Installation and grafana.ini are done by the Galaxy role grafana.grafana.grafana,
+# auth settings, data source and dashboards come from this role.
+
+- name: Set grafana.ini values for the Galaxy role
+  ansible.builtin.set_fact:
+    grafana_ini:
+      server:
+        http_port: "{{ grafana_http_port }}"
+        domain: "{{ monitoring_host }}"
+        root_url: "{{ grafana_root_url }}"
+        serve_from_sub_path: true
+      security:
+        admin_user: "{{ grafana_admin_user }}"
+        admin_password: "{{ grafana_admin_password }}"
+      users:
+        allow_sign_up: false
+      auth:
+        anonymous:
+          enabled: false
+    # the Galaxy role imports *.json from this directory; there are none here
+    # because the dashboards are provisioned by this role (see below)
+    grafana_import_dir: "{{ role_path }}/templates"
+  no_log: true
+
+- name: Install python3-debian (the Galaxy role needs it to add the apt repository)
+  ansible.builtin.apt:
+    name: python3-debian
+    state: present
+
+- name: Install Grafana
+  ansible.builtin.include_role:
+    name: grafana.grafana.grafana
+  vars:
+    grafana_version: "{{ grafana_release }}"
+    grafana_dashboards_dir: "{{ grafana_import_dir }}"
+
+- name: Provision the Prometheus data source
+  ansible.builtin.template:
+    src: datasource.yml.j2
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana-server
+
+- name: Provision the dashboard folders
+  ansible.builtin.template:
+    src: dashboards.yml.j2
+    dest: /etc/grafana/provisioning/dashboards/monitoring.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana-server
+
+- name: Create dashboard directories
+  ansible.builtin.file:
+    path: "{{ grafana_provisioned_dashboards_dir }}/{{ item.dir }}"
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: "0755"
+  loop: "{{ grafana_dashboard_folders }}"
+
+- name: Copy dashboards
+  ansible.builtin.copy:
+    src: "dashboards/{{ item.dir }}/"
+    dest: "{{ grafana_provisioned_dashboards_dir }}/{{ item.dir }}/"
+    owner: grafana
+    group: grafana
+    mode: "0644"
+  loop: "{{ grafana_dashboard_folders }}"
+
+- name: Apply provisioning changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for the Grafana API
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ grafana_http_port }}/grafana/api/health"
+  register: grafana_health
+  until: grafana_health.status == 200
+  retries: 30
+  delay: 5
+
+# grafana.ini sets the admin password only when Grafana creates its database,
+# so a password changed in the vault later is applied here
+- name: Check the admin password from the vault
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ grafana_http_port }}/grafana/api/user"
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 401]
+  register: grafana_login
+  no_log: true
+
+- name: Reset the admin password to the vault value
+  ansible.builtin.command:
+    argv:
+      - grafana
+      - cli
+      - --homepath
+      - /usr/share/grafana
+      - --config
+      - /etc/grafana/grafana.ini
+      - admin
+      - reset-admin-password
+      - "{{ grafana_admin_password }}"
+  become: true
+  become_user: grafana
+  when: grafana_login.status == 401
+  changed_when: true
+  no_log: true

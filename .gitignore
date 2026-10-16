@@ -1,0 +1,7 @@
+.vault_pass
+.venv/
+.vagrant/
+.facts_cache/
+galaxy_roles/
+collections/
+*.retry

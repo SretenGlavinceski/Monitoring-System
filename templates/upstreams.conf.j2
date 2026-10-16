@@ -1,0 +1,27 @@
+# {{ ansible_managed }}
+{% set down = upstream_down | default([]) %}
+{% macro servers(group, port) -%}
+{% for h in groups[group] %}
+    server {{ hostvars[h].ansible_host }}:{{ port }}{{ ' down' if h in down else '' }};
+{% endfor %}
+{%- endmacro %}
+# ip_hash keeps a user on the same Grafana, sessions are stored per instance
+upstream grafana {
+    ip_hash;
+{{ servers('metrics', 3000) }}}
+
+upstream prometheus {
+    ip_hash;
+{{ servers('metrics', 9090) }}}
+
+upstream alertmanager {
+{{ servers('alert', 9093) }}}
+
+upstream kibana {
+{% for h in groups['logging'] if hostvars[h].kibana_enabled | default(false) %}
+    server {{ hostvars[h].ansible_host }}:5601;
+{% endfor %}
+}
+
+upstream app {
+{{ servers('app', 8000) }}}

@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+apiVersion: 1
+providers:
+{% for folder in grafana_dashboard_folders %}
+  - name: {{ folder.dir }}
+    folder: {{ folder.title }}
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: {{ grafana_provisioned_dashboards_dir }}/{{ folder.dir }}
+{% endfor %}

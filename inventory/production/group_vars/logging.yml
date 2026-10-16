@@ -1,0 +1,6 @@
+---
+es_cluster_name: monitoring
+es_heap_size: 512m
+es_single_node: false
+es_replicas: 1
+kibana_max_old_space_mb: 512

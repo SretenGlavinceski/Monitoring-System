@@ -1,0 +1,7 @@
+---
+app_version: "1.0.0"
+app_port: 8000
+app_threads: 4
+app_user: demo-app
+app_dir: /opt/demo-app
+app_log_dir: /var/log/demo-app

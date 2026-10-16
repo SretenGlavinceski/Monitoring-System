@@ -1,0 +1,20 @@
+# {{ ansible_managed }}
+groups:
+  - name: node_recording
+    rules:
+      - record: instance:node_cpu_utilisation:rate5m
+        expr: 100 * (1 - avg by (instance, host, team) (rate(node_cpu_seconds_total{mode="idle"}[5m])))
+
+      - record: instance:node_memory_utilisation:ratio
+        expr: 1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes
+
+      - record: instance:node_filesystem_utilisation:ratio
+        expr: 1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}
+
+  - name: app_recording
+    rules:
+      - record: app:requests:rate1m
+        expr: sum by (host, team) (rate(app_requests_total[1m]))
+
+      - record: app:errors:rate1m
+        expr: sum by (host, team) (rate(app_requests_total{status=~"5.."}[1m]))

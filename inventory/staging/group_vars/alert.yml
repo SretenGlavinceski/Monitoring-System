@@ -1,0 +1,10 @@
+---
+# single instance, no cluster
+alertmanager_cluster:
+  listen-address: ""
+
+alert_email_infra: ops-staging@example.com
+alert_email_app: dev-staging@example.com
+alert_email_from: alertmanager-staging@example.com
+smtp_smarthost: smtp.example.com:587
+smtp_username: alertmanager-staging@example.com

@@ -1,0 +1,23 @@
+---
+node_exporter_port: 9100
+
+exporter_install_dir: /opt/exporters
+exporter_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
+nginx_exporter_version: "1.5.2"
+es_exporter_version: "1.10.0"
+
+# extra exporters, installed only on hosts that are members of the given group
+agent_exporters:
+  - name: nginx_exporter
+    group: proxy
+    url: "https://github.com/nginx/nginx-prometheus-exporter/releases/download/v{{ nginx_exporter_version }}/\
+      nginx-prometheus-exporter_{{ nginx_exporter_version }}_linux_{{ exporter_arch }}.tar.gz"
+    binary: nginx-prometheus-exporter
+    args: "--nginx.scrape-uri=http://127.0.0.1/stub_status --web.listen-address=:9113"
+  - name: elasticsearch_exporter
+    group: logging
+    url: "https://github.com/prometheus-community/elasticsearch_exporter/releases/download/v{{ es_exporter_version }}/\
+      elasticsearch_exporter-{{ es_exporter_version }}.linux-{{ exporter_arch }}.tar.gz"
+    binary: "elasticsearch_exporter-{{ es_exporter_version }}.linux-{{ exporter_arch }}/elasticsearch_exporter"
+    args: "--es.uri=http://127.0.0.1:9200 --web.listen-address=:9114"

@@ -1,0 +1,11 @@
+cluster.name: {{ es_cluster_name }}
+node.name: {{ inventory_hostname }}
+# the VMs have a NAT interface with the same address on every host,
+# so the address other nodes should use is set explicitly
+network.publish_host: {{ ansible_host }}
+{% if es_single_node | bool %}
+discovery.type: single-node
+{% else %}
+discovery.seed_hosts: [{% for h in groups['logging'] %}"{{ hostvars[h].ansible_host }}"{{ ", " if not loop.last else "" }}{% endfor %}]
+cluster.initial_master_nodes: [{% for h in groups['logging'] %}"{{ h }}"{{ ", " if not loop.last else "" }}{% endfor %}]
+{% endif %}

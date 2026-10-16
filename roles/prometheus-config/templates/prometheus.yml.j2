@@ -1,0 +1,52 @@
+# {{ ansible_managed }}
+global:
+  scrape_interval: {{ prometheus_scrape_interval }}
+  evaluation_interval: {{ prometheus_scrape_interval }}
+  external_labels:
+    env: {{ env_name }}
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+alerting:
+  alertmanagers:
+    - path_prefix: /alertmanager/
+      static_configs:
+        - targets:
+{% for h in groups['alert'] %}
+            - {{ hostvars[h].ansible_host }}:{{ prometheus_alertmanager_port }}
+{% endfor %}
+
+{% macro targets(group, port, team) -%}
+{% for h in groups[group] %}
+      - targets: ["{{ hostvars[h].ansible_host }}:{{ port }}"]
+        labels:
+          host: {{ h }}
+          team: {{ team }}
+{% endfor %}
+{%- endmacro %}
+scrape_configs:
+  - job_name: prometheus
+    metrics_path: /prometheus/metrics
+    static_configs:
+      - targets: ["127.0.0.1:{{ prometheus_port }}"]
+        labels:
+          host: {{ inventory_hostname }}
+          team: {{ prometheus_infra_team }}
+
+  - job_name: alertmanager
+    metrics_path: /alertmanager/metrics
+    static_configs:
+{{ targets('alert', prometheus_alertmanager_port, prometheus_infra_team) }}
+  - job_name: node
+    static_configs:
+{{ targets('monitoring', prometheus_node_exporter_port, prometheus_infra_team) }}
+  - job_name: nginx
+    static_configs:
+{{ targets('proxy', prometheus_nginx_exporter_port, prometheus_infra_team) }}
+  - job_name: elasticsearch
+    static_configs:
+{{ targets('logging', prometheus_es_exporter_port, prometheus_infra_team) }}
+  - job_name: app
+    static_configs:
+{{ targets('app', prometheus_app_port, prometheus_app_team) }}

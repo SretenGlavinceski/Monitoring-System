@@ -1,0 +1,23 @@
+---
+prometheus_release: "3.13.3"
+prometheus_port: 9090
+prometheus_retention: 15d
+prometheus_scrape_interval: 15s
+prometheus_external_url: "https://{{ monitoring_host }}/prometheus/"
+
+# ports of the scrape targets
+prometheus_node_exporter_port: 9100
+prometheus_nginx_exporter_port: 9113
+prometheus_es_exporter_port: 9114
+prometheus_alertmanager_port: 9093
+prometheus_app_port: 8000
+
+# value of the "team" label, used by Alertmanager to route alerts
+prometheus_infra_team: infra
+prometheus_app_team: app
+
+# alert thresholds
+alert_cpu_threshold: 80
+alert_memory_threshold: 85
+alert_disk_threshold: 85
+alert_app_error_rate_threshold: 5

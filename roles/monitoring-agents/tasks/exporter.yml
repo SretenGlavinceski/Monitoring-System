@@ -1,0 +1,42 @@
+---
+- name: Create user for {{ exporter.name }}
+  ansible.builtin.user:
+    name: "{{ exporter.name }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Create directory for {{ exporter.name }}
+  ansible.builtin.file:
+    path: "{{ exporter_install_dir }}/{{ exporter.name }}"
+    state: directory
+    mode: "0755"
+
+- name: Download and unpack {{ exporter.name }}
+  ansible.builtin.unarchive:
+    src: "{{ exporter.url }}"
+    dest: "{{ exporter_install_dir }}/{{ exporter.name }}"
+    remote_src: true
+    creates: "{{ exporter_install_dir }}/{{ exporter.name }}/{{ exporter.binary }}"
+
+- name: Install the binary of {{ exporter.name }}
+  ansible.builtin.copy:
+    src: "{{ exporter_install_dir }}/{{ exporter.name }}/{{ exporter.binary }}"
+    dest: "/usr/local/bin/{{ exporter.name }}"
+    remote_src: true
+    mode: "0755"
+  notify: "Restart {{ exporter.name }}"
+
+- name: Install the systemd service of {{ exporter.name }}
+  ansible.builtin.template:
+    src: exporter.service.j2
+    dest: "/etc/systemd/system/{{ exporter.name }}.service"
+    mode: "0644"
+  notify: "Restart {{ exporter.name }}"
+
+- name: Enable and start {{ exporter.name }}
+  ansible.builtin.systemd:
+    name: "{{ exporter.name }}"
+    enabled: true
+    state: started
+    daemon_reload: true

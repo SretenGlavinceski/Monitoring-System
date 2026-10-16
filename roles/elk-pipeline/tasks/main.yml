@@ -1,0 +1,12 @@
+---
+- name: Elasticsearch
+  ansible.builtin.include_tasks: elasticsearch.yml
+  when: "'logging' in group_names"
+
+- name: Kibana
+  ansible.builtin.include_tasks: kibana.yml
+  when: "'logging' in group_names and kibana_enabled"
+
+- name: Logstash
+  ansible.builtin.include_tasks: logstash.yml
+  when: "'collectors' in group_names"

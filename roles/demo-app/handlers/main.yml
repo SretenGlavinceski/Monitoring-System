@@ -1,0 +1,6 @@
+---
+- name: Restart demo-app
+  ansible.builtin.systemd:
+    name: demo-app
+    state: restarted
+    daemon_reload: true

@@ -1,0 +1,18 @@
+---
+env_name: staging
+
+# address users open in the browser (the first proxy)
+monitoring_host: 192.168.56.10
+
+ansible_user: vagrant
+ansible_ssh_private_key_file: "{{ inventory_dir }}/../../.vagrant/machines/{{ inventory_hostname }}/virtualbox/private_key"
+
+proxy_basic_auth_user: admin
+
+# secrets, defined in vault.yml
+grafana_admin_password: "{{ vault_grafana_admin_password }}"
+proxy_basic_auth_password: "{{ vault_proxy_basic_auth_password }}"
+slack_webhook_infra: "{{ vault_slack_webhook_infra }}"
+slack_webhook_app: "{{ vault_slack_webhook_app }}"
+smtp_password: "{{ vault_smtp_password }}"
+tls_private_key: "{{ vault_tls_private_key }}"

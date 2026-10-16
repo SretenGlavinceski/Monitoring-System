@@ -1,0 +1,11 @@
+---
+# the two instances gossip with each other so a notification is sent only once
+alertmanager_cluster:
+  listen-address: "{{ ansible_host }}:9094"
+  peers: "{{ groups['alert'] | map('extract', hostvars, 'ansible_host') | map('regex_replace', '$', ':9094') | list }}"
+
+alert_email_infra: ops@example.com
+alert_email_app: dev@example.com
+alert_email_from: alertmanager@example.com
+smtp_smarthost: smtp.example.com:587
+smtp_username: alertmanager@example.com

@@ -1,0 +1,67 @@
+# {{ ansible_managed }}
+filebeat.inputs:
+  - type: filestream
+    id: syslog
+    paths:
+      - /var/log/syslog
+      - /var/log/auth.log
+    fields:
+      log_type: syslog
+      team: {{ filebeat_infra_team }}
+{% if 'proxy' in group_names %}
+
+  - type: filestream
+    id: nginx-access
+    paths:
+      - /var/log/nginx/access.log
+    fields:
+      log_type: nginx_access
+      team: {{ filebeat_infra_team }}
+
+  - type: filestream
+    id: nginx-error
+    paths:
+      - /var/log/nginx/error.log
+    fields:
+      log_type: nginx_error
+      team: {{ filebeat_infra_team }}
+{% endif %}
+{% if 'logging' in group_names %}
+
+  - type: filestream
+    id: elasticsearch
+    paths:
+      - /var/log/elasticsearch/{{ es_cluster_name }}.log
+    fields:
+      log_type: elasticsearch
+      team: {{ filebeat_infra_team }}
+{% endif %}
+{% if 'app' in group_names %}
+
+  # the application writes one JSON object per line
+  - type: filestream
+    id: app
+    paths:
+      - {{ filebeat_app_log }}
+    parsers:
+      - ndjson:
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+    fields:
+      log_type: app
+      team: {{ filebeat_app_team }}
+{% endif %}
+
+fields:
+  env: {{ env_name }}
+
+processors:
+  - add_host_metadata: ~
+
+output.logstash:
+  hosts:
+{% for h in groups['collectors'] %}
+    - "{{ hostvars[h].ansible_host }}:{{ logstash_beats_port }}"
+{% endfor %}
+  loadbalance: true

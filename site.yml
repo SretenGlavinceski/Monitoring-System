@@ -1,0 +1,203 @@
+---
+# Full deployment, from clean Ubuntu hosts to a working platform.
+#   ansible-playbook site.yml                            staging
+#   ansible-playbook -i inventory/production site.yml    production
+
+- name: Gather facts on all hosts
+  hosts: monitoring
+  gather_facts: false
+  tasks:
+    # explicit setup always collects fresh facts and refreshes the cache,
+    # the following plays read them from the cache instead of gathering again
+    - name: Gather facts
+      ansible.builtin.setup:
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+- name: Logging tier
+  hosts: logging
+  roles:
+    - elk-pipeline
+
+- name: Collectors tier
+  hosts: collectors
+  roles:
+    - elk-pipeline
+
+- name: Metrics tier
+  hosts: metrics
+  roles:
+    - prometheus-config
+    - grafana-dashboards
+
+- name: Alerting tier
+  hosts: alert
+  vars:
+    alertmanager_web_external_url: "https://{{ monitoring_host }}/alertmanager/"
+    alertmanager_mask_diff: true
+    alertmanager_smtp:
+      from: "{{ alert_email_from }}"
+      smarthost: "{{ smtp_smarthost }}"
+      auth_username: "{{ smtp_username }}"
+      auth_password: "{{ smtp_password }}"
+      require_tls: true
+    alertmanager_route:
+      receiver: infra
+      group_by: [alertname, host]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        - receiver: app
+          matchers:
+            - team="app"
+    alertmanager_receivers:
+      - name: infra
+        slack_configs:
+          - api_url: "{{ slack_webhook_infra }}"
+            channel: "#infra-alerts"
+            send_resolved: true
+        email_configs:
+          - to: "{{ alert_email_infra }}"
+            send_resolved: true
+      - name: app
+        slack_configs:
+          - api_url: "{{ slack_webhook_app }}"
+            channel: "#app-alerts"
+            send_resolved: true
+        email_configs:
+          - to: "{{ alert_email_app }}"
+            send_resolved: true
+  roles:
+    - prometheus.prometheus.alertmanager
+
+- name: Application tier
+  hosts: app
+  roles:
+    - demo-app
+
+- name: Monitoring agents on all hosts
+  hosts: monitoring
+  serial: "20%"
+  max_fail_percentage: 0
+  roles:
+    - monitoring-agents
+
+- name: Reverse proxy
+  hosts: proxy
+  vars:
+    nginx_remove_default_vhost: true
+    nginx_listen_ipv6: false
+    nginx_vhosts:
+      - listen: "80 default_server"
+        server_name: "{{ monitoring_host }}"
+        filename: monitoring-http.conf
+        extra_parameters: |
+          location = /stub_status {
+              stub_status;
+              allow 127.0.0.1;
+              deny all;
+          }
+          location / {
+              return 301 https://$host$request_uri;
+          }
+      - listen: "443 ssl default_server"
+        server_name: "{{ monitoring_host }}"
+        filename: monitoring.conf
+        extra_parameters: |
+          ssl_certificate     /etc/nginx/ssl/monitoring.crt;
+          ssl_certificate_key /etc/nginx/ssl/monitoring.key;
+
+          auth_basic           "Monitoring";
+          auth_basic_user_file /etc/nginx/.htpasswd;
+
+          proxy_set_header Host              $host;
+          proxy_set_header X-Real-IP         $remote_addr;
+          proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+
+          location = / {
+              return 302 /grafana/;
+          }
+          location /grafana/ {
+              proxy_set_header Host              $host;
+              proxy_set_header X-Real-IP         $remote_addr;
+              proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              # nginx already checked the login, Grafana has its own
+              proxy_set_header Authorization     "";
+              proxy_pass http://grafana;
+          }
+          location /kibana/ {
+              proxy_pass http://kibana;
+          }
+          location /prometheus/ {
+              proxy_pass http://prometheus;
+          }
+          location /alertmanager/ {
+              proxy_pass http://alertmanager;
+          }
+          # the application is public, the monitoring UIs are not
+          location /app/ {
+              auth_basic off;
+              proxy_pass http://app/;
+          }
+  pre_tasks:
+    - name: Install python passlib for the htpasswd module
+      ansible.builtin.apt:
+        name: python3-passlib
+        state: present
+
+    - name: Create nginx directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /etc/nginx/ssl
+        - /etc/nginx/conf.d
+
+    - name: Install TLS certificate
+      ansible.builtin.copy:
+        content: "{{ tls_certificate }}"
+        dest: /etc/nginx/ssl/monitoring.crt
+        mode: "0644"
+      register: tls_cert
+
+    - name: Install TLS private key
+      ansible.builtin.copy:
+        content: "{{ tls_private_key }}"
+        dest: /etc/nginx/ssl/monitoring.key
+        mode: "0600"
+      register: tls_key
+      no_log: true
+
+    - name: Create basic auth user
+      community.general.htpasswd:
+        path: /etc/nginx/.htpasswd
+        name: "{{ proxy_basic_auth_user }}"
+        password: "{{ proxy_basic_auth_password }}"
+        owner: root
+        group: www-data
+        mode: "0640"
+      register: htpasswd
+
+    - name: Configure upstreams
+      ansible.builtin.template:
+        src: upstreams.conf.j2
+        dest: /etc/nginx/conf.d/upstreams.conf
+        mode: "0644"
+      register: upstreams
+  roles:
+    - geerlingguy.nginx
+  tasks:
+    # the files above are written before nginx is installed on a clean host,
+    # so the reload happens here instead of through a handler
+    - name: Reload nginx after a certificate, password or upstream change
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+      when: tls_cert.changed or tls_key.changed or htpasswd.changed or upstreams.changed

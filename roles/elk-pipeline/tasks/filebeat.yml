@@ -1,0 +1,30 @@
+---
+# Included by the monitoring-agents role on every host.
+
+- name: Make sure rsyslog is installed (Filebeat reads /var/log/syslog)
+  ansible.builtin.apt:
+    name: rsyslog
+    state: present
+
+- name: Elastic apt repository
+  ansible.builtin.include_tasks: elastic_repo.yml
+
+- name: Install Filebeat
+  ansible.builtin.apt:
+    name: filebeat
+    state: present
+
+- name: Configure Filebeat
+  ansible.builtin.template:
+    src: filebeat.yml.j2
+    dest: /etc/filebeat/filebeat.yml
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart filebeat
+
+- name: Enable and start Filebeat
+  ansible.builtin.systemd:
+    name: filebeat
+    enabled: true
+    state: started

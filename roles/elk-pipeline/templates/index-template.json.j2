@@ -1,0 +1,27 @@
+{
+  "index_patterns": ["{{ es_index_prefix }}-*"],
+  "priority": 200,
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": {{ es_replicas }}
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "message": { "type": "text" },
+        "level": { "type": "keyword" },
+        "status": { "type": "integer" },
+        "duration_ms": { "type": "float" },
+        "host": { "properties": { "name": { "type": "keyword" } } },
+        "fields": {
+          "properties": {
+            "env": { "type": "keyword" },
+            "log_type": { "type": "keyword" },
+            "team": { "type": "keyword" }
+          }
+        }
+      }
+    }
+  }
+}

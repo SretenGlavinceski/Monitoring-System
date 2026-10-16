@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: prometheus_config
+  author: Sreten Glavincheski
+  description: Prometheus with scrape targets from the inventory, alert and recording rules
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+dependencies: []

@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: demo_app
+  author: Sreten Glavincheski
+  description: Small Flask application with Prometheus metrics and JSON logs
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+dependencies: []

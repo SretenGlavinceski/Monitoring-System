@@ -1,0 +1,33 @@
+---
+- name: Elastic apt repository
+  ansible.builtin.include_tasks: elastic_repo.yml
+
+- name: Install Logstash
+  ansible.builtin.apt:
+    name: logstash
+    state: present
+
+- name: Set JVM heap
+  ansible.builtin.lineinfile:
+    path: /etc/logstash/jvm.options
+    regexp: "^{{ item }}"
+    line: "{{ item }}{{ logstash_heap_size }}"
+  loop:
+    - "-Xms"
+    - "-Xmx"
+  notify: Restart logstash
+
+- name: Configure pipeline
+  ansible.builtin.template:
+    src: beats.conf.j2
+    dest: /etc/logstash/conf.d/beats.conf
+    owner: root
+    group: logstash
+    mode: "0640"
+  notify: Restart logstash
+
+- name: Enable and start Logstash
+  ansible.builtin.systemd:
+    name: logstash
+    enabled: true
+    state: started

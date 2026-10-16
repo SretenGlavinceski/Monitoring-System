@@ -1,0 +1,16 @@
+---
+grafana_release: "12.4.10"
+grafana_http_port: 3000
+grafana_admin_user: admin
+# grafana_admin_password is set in the inventory (vault)
+
+grafana_root_url: "https://{{ monitoring_host }}/grafana/"
+grafana_datasource_url: "http://127.0.0.1:9090/prometheus"
+grafana_provisioned_dashboards_dir: /var/lib/grafana/provisioned
+
+# dashboard folders in Grafana, one directory per folder in files/dashboards/
+grafana_dashboard_folders:
+  - dir: infra
+    title: Infrastructure
+  - dir: app
+    title: Application

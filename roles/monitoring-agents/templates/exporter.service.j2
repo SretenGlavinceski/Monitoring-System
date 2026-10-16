@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+[Unit]
+Description={{ exporter.name }}
+After=network-online.target
+
+[Service]
+User={{ exporter.name }}
+ExecStart=/usr/local/bin/{{ exporter.name }} {{ exporter.args }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

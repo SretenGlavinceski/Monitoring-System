@@ -1,0 +1,32 @@
+---
+# Installation is done by the Galaxy role prometheus.prometheus.prometheus,
+# the configuration (prometheus.yml and the rule files) comes from this role.
+
+- name: Point the Galaxy role to this role's prometheus.yml template
+  ansible.builtin.set_fact:
+    prometheus_config_template: "{{ role_path }}/templates/prometheus.yml.j2"
+
+- name: Install Prometheus
+  ansible.builtin.include_role:
+    name: prometheus.prometheus.prometheus
+  vars:
+    prometheus_version: "{{ prometheus_release }}"
+    prometheus_config_file: "{{ prometheus_config_template }}"
+    prometheus_web_listen_address: "0.0.0.0:{{ prometheus_port }}"
+    prometheus_web_external_url: "{{ prometheus_external_url }}"
+    prometheus_storage_retention: "{{ prometheus_retention }}"
+    # the Galaxy role ships example alert rules, ours are in templates/
+    prometheus_alert_rules: []
+
+- name: Install alert and recording rules
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/prometheus/rules/{{ item }}"
+    owner: prometheus
+    group: prometheus
+    mode: "0640"
+    validate: /usr/local/bin/promtool check rules %s
+  loop:
+    - recording.yml
+    - alerts.yml
+  notify: Reload prometheus rules
