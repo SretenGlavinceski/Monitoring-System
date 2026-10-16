@@ -200,12 +200,13 @@ ansible metrics -m shell -a "curl -s localhost:9090/prometheus/api/v1/rules | py
 
 In the browser: `/prometheus/targets`, `/prometheus/rules`, `/prometheus/alerts`.
 
-## Presentation notes
+## Design decisions
 
-- Dynamic targets: show `prometheus.yml.j2`, then `/prometheus/targets`; one
-  loop per group produces every target with its labels.
+- Scrape targets are generated from inventory groups; a host added to the
+  inventory is monitored after the next run.
 - Pull model: a target that stops answering is detected by the failed scrape
   (`up == 0`), which is what `InstanceDown` checks.
-- Recording rules are used by both the alerts and the dashboards.
-- Validation with `promtool` keeps broken configuration away from the running
-  service; changes are applied with a reload, not a restart.
+- Recording rules are shared by the alert rules and the Grafana dashboards,
+  so each calculation is defined once.
+- `promtool` validates configuration and rules before they are written;
+  changes are applied with a reload, so Prometheus keeps scraping.

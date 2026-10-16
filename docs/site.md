@@ -319,3 +319,24 @@ registered pre_tasks reported a change:
 ```
 
 A reload applies the new configuration without dropping open connections.
+
+---
+
+## ansible.cfg
+
+Settings that apply to every run of `site.yml` and `rolling_update.yml`:
+
+| Setting | Effect |
+|---------|--------|
+| `inventory = inventory/staging` | staging is the default; production is selected with `-i inventory/production` |
+| `roles_path = galaxy_roles:roles` | Galaxy roles install into `galaxy_roles/`, the project's roles are in `roles/` |
+| `collections_path = collections` | collections install inside the project |
+| `vault_password_file = .vault_pass` | vault files are decrypted automatically |
+| `forks = 20` | up to 20 hosts are handled in parallel |
+| `force_handlers = True` | handlers still run on a host when a later task on it fails, so a failed run cannot leave a service with an old configuration |
+| `gathering = smart`, `fact_caching = jsonfile`, `fact_caching_connection = .facts_cache`, `fact_caching_timeout = 86400` | facts are cached for 24 hours and reused by later plays |
+| `host_key_checking = False` | the lab machines are recreated often and change their SSH host keys |
+| `become = True` | tasks run with sudo |
+| `pipelining = True` | fewer SSH operations per task |
+| `interpreter_python`, `retry_files_enabled`, `callback_result_format`, `deprecation_warnings` | quieter, more readable output |
+

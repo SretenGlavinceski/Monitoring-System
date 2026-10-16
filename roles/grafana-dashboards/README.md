@@ -194,13 +194,13 @@ ansible metrics -m shell -a "ls -R /etc/grafana/provisioning /var/lib/grafana/pr
 In the browser: `/grafana/` → Dashboards (two folders), Connections → Data
 sources (Prometheus, provisioned).
 
-## Presentation notes
+## Design decisions
 
-- Everything is provisioned from files; a destroyed machine comes back
-  identical with one run.
-- Auth: password from the vault, no sign-up, no anonymous access, and the
-  proxy login in front.
-- The password check shows how a one-time setting (`admin_password`) is made
-  to follow the vault while staying idempotent.
+- Data source and dashboards are provisioned from files; a rebuilt machine
+  comes back identical after one run.
+- Authentication: password from the vault, no sign-up, no anonymous access,
+  and the proxy login in front.
+- The password check makes the one-time `admin_password` setting follow the
+  vault while keeping the role idempotent.
 - The nginx location for Grafana removes the `Authorization` header;
   otherwise Grafana would try to log in with the proxy's credentials.

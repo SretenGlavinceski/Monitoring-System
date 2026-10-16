@@ -62,9 +62,9 @@ hosts that were not touched.
 The rolling update is meant for production; in staging it runs the same
 steps, which is enough to test the playbook.
 
-## Demonstration
+## Observing an update
 
-Terminal 1, watch which version and host answer:
+In one terminal, poll the application to see which version and host answer:
 
 ```bash
 while true; do
@@ -73,13 +73,13 @@ while true; do
 done
 ```
 
-Terminal 2:
+In a second terminal, start the update:
 
 ```bash
 ansible-playbook -i inventory/production rolling_update.yml -e app_version=1.1.0
 ```
 
-Terminal 1 shows only app2 while app1 is updated, then app1 with 1.1.0 and
+The first terminal shows only app2 while app1 is updated, then app1 with 1.1.0 and
 app2 with 1.0.0, then only app1 while app2 is updated, and finally both with
 1.1.0. No request fails.
 

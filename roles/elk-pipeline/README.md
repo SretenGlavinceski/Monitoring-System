@@ -289,11 +289,12 @@ ansible collectors -m shell -a "curl -s localhost:9600/_node/stats/events?pretty
 ansible all -m shell -a "filebeat test output"
 ```
 
-## Presentation notes
+## Design decisions
 
 - One role for the whole pipeline; `group_names` decides what each host gets.
-- Filebeat configuration is part of this role and is reused by the agents role.
-- Index template and data views are compared with the existing ones and only
-  written when they differ.
-- `network.publish_host` and the `monitoring-` prefix are the two settings
-  that make the cluster and the indices work in this environment.
+- The Filebeat configuration belongs to this role and is reused by
+  `monitoring-agents`.
+- The index template and the data views are compared with the existing ones
+  and only written when they differ.
+- `network.publish_host` and the `monitoring-` index prefix are required for
+  the cluster and the indices to work in this environment.

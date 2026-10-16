@@ -155,11 +155,11 @@ ansible app -m shell -a "curl -s localhost:8000/metrics | grep '^app_requests_to
 ansible app -m shell -a "tail -n 3 /var/log/demo-app/app.log"
 ```
 
-## Presentation notes
+## Design decisions
 
-- The application exists to give the monitoring something real: traffic,
-  errors on demand (`/fail`), latency on demand (`/slow`).
-- Production-like setup: gunicorn, virtualenv with pinned packages, systemd,
-  unprivileged user.
-- The version lives in the service file, so a version change restarts the
-  application through the handler; that is what the rolling update relies on.
+- The application gives the platform real data: traffic, errors on demand
+  (`/fail`) and latency on demand (`/slow`).
+- Production-like setup: gunicorn, a virtualenv with pinned packages,
+  systemd and an unprivileged user.
+- The version is part of the service file, so a version change restarts the
+  application through the handler; the rolling update relies on this.
